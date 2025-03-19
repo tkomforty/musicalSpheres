@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enhanced Algorithmic Music Generator</title>
+    <title>Algorithmic Music Spheres</title>
     <style>
         body {
             margin: 0;
@@ -215,6 +215,37 @@
             font-size: 22px;
             line-height: 1;
         }
+        #credits {
+            position: absolute;
+            bottom: 500px;
+            left: 0;
+            width: 0px;
+            text-align: center;
+            font-size: 18px;
+            color: rgba(255, 255, 255, 0.8);
+            padding: 0 5px;
+            z-index: 1001;
+            transition: width 0.3s ease;
+            pointer-events: none;
+        }
+        #controls.expanded #credits {
+            width: 250px;
+            text-align: center;
+        }
+        #credits .title {
+            font-size: 22px;
+            margin-bottom: 5px;
+            letter-spacing: 1px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        #credits .libs {
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
     </style>
 </head>
 <body>
@@ -257,6 +288,12 @@
             <button id="remove-objects" title="Clear"><span class="icon">×</span></button>
             <button id="change-scale" title="Change Scale"><span class="icon">♪</span></button>
         </div>
+        
+        <div id="credits">
+            <div class="title">tkomforty 2025</div>
+            <div class="libs">three.js/tone.js/cannon.js</div>
+        </div>
+    </div>
     </div>
 
     <!-- Scripts -->
@@ -312,6 +349,18 @@
         initParticles();
         initEventListeners();
         
+        // Create credits element directly in JavaScript to ensure it's added
+        const credits = document.createElement('div');
+        credits.id = 'credits';
+        credits.innerHTML = `
+            <div class="title">tkomforty 2025</div>
+            <div class="libs">three.js/tone.js/cannon.js</div>
+        `;
+        
+        // Append credits to controls
+        const controls = document.getElementById('controls');
+        controls.appendChild(credits);
+        
         // Start animation loop
         animate();
         
@@ -359,7 +408,7 @@
         scene.add(directionalLight);
         
         // Add point lights
-        const pointLight1 = new THREE.PointLight(0x4989ff, 1, 100);
+        const pointLight1 = new THREE.PointLight(0x4989ff, 1, 50);
         pointLight1.position.set(10, 15, 0);
         scene.add(pointLight1);
         
@@ -372,7 +421,7 @@
         const groundMaterial = new THREE.MeshStandardMaterial({ 
             color: 0x101025,
             roughness: 0.7,
-            metalness: 0.15
+            metalness: 0.3
         });
         const ground = new THREE.Mesh(groundGeometry, groundMaterial);
         ground.rotation.x = -Math.PI / 2;
@@ -525,7 +574,7 @@
             const bodyB = contact.bj;
 
             // Ignore ground and wall collisions
-           // if (bodyA.mass === 0 || bodyB.mass === 0) continue;
+            if (bodyA.mass === 0 || bodyB.mass === 0) continue;
 
             // Calculate relative velocity
             const relativeVelocity = new CANNON.Vec3();
@@ -725,8 +774,8 @@
         for (let i = 0; i < 500; i++) {
             const particle = document.createElement('div');
             particle.style.position = 'absolute';
-            particle.style.width = '1px';
-            particle.style.height = '1px';
+            particle.style.width = '2px';
+            particle.style.height = '2px';
             particle.style.backgroundColor = '#4989ff';
             particle.style.borderRadius = '50%';
             particle.style.opacity = '0';
@@ -760,7 +809,7 @@
         const y = (-(vector.y * 0.5) + 0.5) * window.innerHeight;
         
         // Find inactive particles to use - MANY MORE PARTICLES
-        const particleCount = Math.min(Math.round(intensity * 10), 100); // More particles
+        const particleCount = Math.min(Math.round(intensity * 10), 50); // More particles
         let activated = 0;
         
         for (let i = 0; i < particles.length && activated < particleCount; i++) {
@@ -800,7 +849,7 @@
                 // Update position with more dramatic movement
                 particle.x += particle.vx;
                 particle.y += particle.vy;
-                particle.opacity -= 0.0015; // Slower fade out
+                particle.opacity -= 0.015; // Slower fade out
                 
                 // Apply gravity and physics effects
                 particle.vy += 0.15; // Stronger gravity effect
@@ -981,7 +1030,7 @@
             // More dramatic scale animation
             const scaleAnimation = { value: 1 };
             const animate = () => {
-                scaleAnimation.value += 0.8; // Faster animation
+                scaleAnimation.value += 0.08; // Faster animation
                 if (scaleAnimation.value > 1.8) { // More extreme scaling
                     scaleAnimation.value = 0.8; // Compress below normal size
                     setTimeout(() => {
@@ -1038,7 +1087,7 @@
         visualObjects = [];
     }
 
-    // Main animation loop
+    // Main animation loop with speed limit
     function animate() {
         requestAnimationFrame(animate);
         
@@ -1050,6 +1099,20 @@
             if (i < visualObjects.length) {
                 visualObjects[i].position.copy(physicsBodies[i].position);
                 visualObjects[i].quaternion.copy(physicsBodies[i].quaternion);
+                
+                // Check for excessive speed - remove balls over the speed limit
+                const speed = physicsBodies[i].velocity.length();
+                if (speed > 50) { // Speed limit threshold
+                    // Remove from physics
+                    world.removeBody(physicsBodies[i]);
+                    physicsBodies.splice(i, 1);
+                    
+                    // Remove from scene
+                    scene.remove(visualObjects[i]);
+                    visualObjects.splice(i, 1);
+                    i--; // Adjust index since we removed an item
+                    continue;
+                }
             }
         }
         
@@ -1057,7 +1120,7 @@
         updateParticles();
         
         // Animate camera slightly
-        camera.position.x = Math.sin(Date.now() * 0.001) * 2;
+        camera.position.x = Math.sin(Date.now() * 0.0001) * 2;
         camera.position.z = 30 + Math.sin(Date.now() * 0.00008) * 3;
         camera.lookAt(0, 0, 0);
         
