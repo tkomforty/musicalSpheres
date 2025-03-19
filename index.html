@@ -1,0 +1,1084 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Algorithmic Music Generator</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #000;
+            color: #fff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        canvas {
+            display: block;
+        }
+        #controls {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 60px;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            transition: width 0.3s ease;
+            box-shadow: 0 0 15px rgba(0, 100, 255, 0.2);
+            border-right: 1px solid rgba(100, 150, 255, 0.2);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #controls.expanded {
+            width: 250px;
+            align-items: flex-start;
+        }
+        #toggle-controls {
+            width: 60px;
+            height: 60px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(100, 150, 255, 0.2);
+        }
+        .control-icon {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 60px;
+            height: 60px;
+            font-size: 20px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .control-icon:hover {
+            background: rgba(73, 137, 255, 0.2);
+        }
+        .control-group {
+            width: 100%;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            padding: 0 15px;
+            box-sizing: border-box;
+        }
+        #controls.expanded .control-group {
+            max-height: 1000px;
+        }
+        #action-buttons {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            margin-top: auto;
+            border-top: 1px solid rgba(100, 150, 255, 0.2);
+            padding-top: 10px;
+            padding-bottom: 20px;
+        }
+        #controls.expanded #action-buttons {
+            flex-direction: row;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .slider-container {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+            width: 100%;
+        }
+        label {
+            min-width: 80px;
+            margin-right: 10px;
+            font-size: 14px;
+            opacity: 0.9;
+            display: none;
+        }
+        #controls.expanded label {
+            display: block;
+        }
+        input[type="range"] {
+            flex-grow: 1;
+            height: 4px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: rgba(100, 150, 255, 0.3);
+            border-radius: 2px;
+            outline: none;
+            width: 100%;
+            display: none;
+        }
+        #controls.expanded input[type="range"] {
+            display: block;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #4989ff;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: #66a6ff;
+        }
+        button {
+            background: rgba(73, 137, 255, 0.7);
+            border: none;
+            color: white;
+            padding: 8px 12px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 14px;
+            margin: 8px 4px;
+            cursor: pointer;
+            border-radius: 4px;
+            transition: background 0.2s, transform 0.1s;
+            width: 40px;
+            height: 40px;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+        #controls.expanded button {
+            width: auto;
+            padding: 8px 15px;
+        }
+        button:hover {
+            background: rgba(73, 137, 255, 0.9);
+        }
+        button:active {
+            transform: scale(0.97);
+        }
+        .value-display {
+            width: 30px;
+            text-align: right;
+            margin-left: 8px;
+            font-size: 12px;
+            opacity: 0.8;
+            display: none;
+        }
+        #controls.expanded .value-display {
+            display: block;
+        }
+        h3 {
+            font-size: 16px;
+            margin: 15px 0 10px 0;
+            color: #4989ff;
+            font-weight: normal;
+            width: 100%;
+            display: none;
+        }
+        #controls.expanded h3 {
+            display: block;
+        }
+        #status-indicator {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 8px 15px;
+            border-radius: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            font-size: 14px;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            z-index: 1000;
+        }
+        #status-indicator.visible {
+            opacity: 1;
+        }
+        #status-indicator.success {
+            background: rgba(0, 100, 0, 0.5);
+            border: 1px solid rgba(0, 255, 0, 0.3);
+        }
+        #particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+        .icon {
+            font-size: 22px;
+            line-height: 1;
+        }
+    </style>
+</head>
+<body>
+    <div id="status-indicator"></div>
+    <div id="particles"></div>
+    <div id="controls">
+        <button id="toggle-controls" class="control-icon"><span class="icon">≡</span></button>
+        
+        <div class="control-group">
+            <h3>Music Controls</h3>
+            <div class="slider-container">
+                <label for="volume">Volume</label>
+                <input type="range" id="volume" min="0" max="1" step="0.01" value="0.5">
+                <span id="volume-value" class="value-display">0.5</span>
+            </div>
+            <div class="slider-container">
+                <label for="reverb">Reverb</label>
+                <input type="range" id="reverb" min="0" max="1" step="0.01" value="0.3">
+                <span id="reverb-value" class="value-display">0.3</span>
+            </div>
+        </div>
+        
+        <div class="control-group">
+            <h3>Physics Controls</h3>
+            <div class="slider-container">
+                <label for="gravity">Gravity</label>
+                <input type="range" id="gravity" min="0" max="20" step="0.1" value="9.8">
+                <span id="gravity-value" class="value-display">9.8</span>
+            </div>
+            <div class="slider-container">
+                <label for="bounce">Bounciness</label>
+                <input type="range" id="bounce" min="0" max="1.5" step="0.01" value="1.2">
+                <span id="bounce-value" class="value-display">1.2</span>
+            </div>
+        </div>
+        
+        <div id="action-buttons">
+            <button id="start-stop" title="Start/Stop"><span class="icon">▶</span></button>
+            <button id="add-objects" title="Add Objects"><span class="icon">+</span></button>
+            <button id="remove-objects" title="Clear"><span class="icon">×</span></button>
+            <button id="change-scale" title="Change Scale"><span class="icon">♪</span></button>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cannon.js/0.6.2/cannon.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.26/Tone.js"></script>
+    
+    <script>
+    // Global variables
+    let scene, camera, renderer;
+    let world;
+    let synth, fmSynth, reverb;
+    
+    // Arrays to store objects and bodies
+    let visualObjects = [];
+    let physicsBodies = [];
+    
+    // Audio state
+    let isPlaying = false;
+    
+    // Musical scales and parameters
+    const scales = {
+        'major': [0, 2, 4, 5, 7, 9, 11],
+        'minor': [0, 2, 3, 5, 7, 8, 10],
+        'pentatonic': [0, 2, 4, 7, 9],
+        'blues': [0, 3, 5, 6, 7, 10],
+        'chromatic': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+    };
+    
+    let currentScale = 'pentatonic';
+    let currentRoot = 'C4';
+    
+    // Colors for visual objects - more vivid colors
+    const colors = [
+        0x00ffff, 0xff00ff, 0xffff00, 0x00ff00, 0xff0000,
+        0x0000ff, 0x44aaff, 0xff44aa, 0xaaff44, 0xaa44ff
+    ];
+
+    // Particles array for visual effects
+    const particles = [];
+    
+    // Show status message
+    function showStatus(message, isSuccess = true) {
+        // Empty implementation - don't show any status messages
+        // This removes the random text at the top of the screen
+    }
+
+    // Initialize everything when the DOM is loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        initGraphics();
+        initPhysics();
+        initAudio();
+        initParticles();
+        initEventListeners();
+        
+        // Start animation loop
+        animate();
+        
+        // Hide status indicator completely
+        const statusEl = document.getElementById('status-indicator');
+        if (statusEl) {
+            statusEl.style.display = 'none';
+        }
+        
+        // Initialize toolbar in collapsed state
+        setTimeout(() => {
+            // Trigger click once to set correct icon states
+            document.getElementById('toggle-controls').click();
+            document.getElementById('toggle-controls').click();
+        }, 100);
+    });
+
+    // Initialize Three.js graphics
+    function initGraphics() {
+        // Create scene
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x050510);
+        
+        // Create camera
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 15, 30);
+        camera.lookAt(0, 0, 0);
+        
+        // Create renderer
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.body.appendChild(renderer.domElement);
+        
+        // Add lights
+        const ambientLight = new THREE.AmbientLight(0x404060, 0.5);
+        scene.add(ambientLight);
+        
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(10, 20, 10);
+        directionalLight.castShadow = true;
+        directionalLight.shadow.mapSize.width = 2048;
+        directionalLight.shadow.mapSize.height = 2048;
+        scene.add(directionalLight);
+        
+        // Add point lights
+        const pointLight1 = new THREE.PointLight(0x4989ff, 1, 100);
+        pointLight1.position.set(10, 15, 0);
+        scene.add(pointLight1);
+        
+        const pointLight2 = new THREE.PointLight(0xff4989, 1, 50);
+        pointLight2.position.set(-10, 15, 0);
+        scene.add(pointLight2);
+        
+        // Add ground
+        const groundGeometry = new THREE.PlaneGeometry(60, 60, 32, 32);
+        const groundMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x101025,
+            roughness: 0.7,
+            metalness: 0.15
+        });
+        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.y = -5;
+        ground.receiveShadow = true;
+        scene.add(ground);
+        
+        // Create a grid helper for the ground
+        const gridHelper = new THREE.GridHelper(60, 60, 0x1a1a3a, 0x1a1a3a);
+        gridHelper.position.y = -4.99;
+        scene.add(gridHelper);
+        
+        // Add walls with gradient effect
+        const wallMaterial = new THREE.ShaderMaterial({
+            uniforms: {
+                color1: { value: new THREE.Color(0x000510) },
+                color2: { value: new THREE.Color(0x0a1550) }
+            },
+            vertexShader: `
+                varying vec2 vUv;
+                void main() {
+                    vUv = uv;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                uniform vec3 color1;
+                uniform vec3 color2;
+                varying vec2 vUv;
+                void main() {
+                    gl_FragColor = vec4(mix(color1, color2, vUv.y), 0.3);
+                }
+            `,
+            transparent: true
+        });
+        
+        // Back wall
+        const backWall = new THREE.Mesh(
+            new THREE.PlaneGeometry(60, 40),
+            wallMaterial.clone()
+        );
+        backWall.position.z = -30;
+        backWall.position.y = 15;
+        scene.add(backWall);
+        
+        // Left wall
+        const leftWall = new THREE.Mesh(
+            new THREE.PlaneGeometry(60, 40),
+            wallMaterial.clone()
+        );
+        leftWall.rotation.y = Math.PI / 2;
+        leftWall.position.x = -30;
+        leftWall.position.y = 15;
+        scene.add(leftWall);
+        
+        // Right wall
+        const rightWall = new THREE.Mesh(
+            new THREE.PlaneGeometry(60, 40),
+            wallMaterial.clone()
+        );
+        rightWall.rotation.y = -Math.PI / 2;
+        rightWall.position.x = 30;
+        rightWall.position.y = 15;
+        scene.add(rightWall);
+        
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    }
+
+    // Initialize Cannon.js physics
+    function initPhysics() {
+        // Create physics world
+        world = new CANNON.World();
+        world.gravity.set(0, -9.8, 0);
+        world.broadphase = new CANNON.NaiveBroadphase();
+        
+        // Create a material for collisions
+        const defaultMaterial = new CANNON.Material("default");
+        
+        // Custom contact material to improve collision detection
+        const defaultContact = new CANNON.ContactMaterial(
+            defaultMaterial, defaultMaterial,
+            { 
+                friction: 0.3, 
+                restitution: 1.2,
+                contactEquationStiffness: 1e8,
+                contactEquationRelaxation: 3,
+                frictionEquationStiffness: 1e8,
+                frictionEquationRelaxation: 3
+            }
+        );
+        world.addContactMaterial(defaultContact);
+        world.defaultContactMaterial = defaultContact;
+        
+        // Add ground
+        const groundShape = new CANNON.Plane();
+        const groundBody = new CANNON.Body({ mass: 0 });
+        groundBody.addShape(groundShape);
+        groundBody.quaternion.setFromAxisAngle(new CANNON.Vec3(1, 0, 0), -Math.PI/2);
+        groundBody.position.set(0, -5, 0);
+        world.addBody(groundBody);
+        
+        // Add walls
+        // Back wall
+        const backWallShape = new CANNON.Plane();
+        const backWallBody = new CANNON.Body({ mass: 0 });
+        backWallBody.addShape(backWallShape);
+        backWallBody.position.set(0, 0, -30);
+        world.addBody(backWallBody);
+        
+        // Front wall (invisible)
+        const frontWallBody = new CANNON.Body({ mass: 0 });
+        frontWallBody.addShape(backWallShape);
+        frontWallBody.quaternion.setFromAxisAngle(new CANNON.Vec3(0, 1, 0), Math.PI);
+        frontWallBody.position.set(0, 0, 30);
+        world.addBody(frontWallBody);
+        
+        // Left wall
+        const leftWallBody = new CANNON.Body({ mass: 0 });
+        leftWallBody.addShape(backWallShape);
+        leftWallBody.quaternion.setFromAxisAngle(new CANNON.Vec3(0, 1, 0), Math.PI/2);
+        leftWallBody.position.set(-30, 0, 0);
+        world.addBody(leftWallBody);
+        
+        // Right wall
+        const rightWallBody = new CANNON.Body({ mass: 0 });
+        rightWallBody.addShape(backWallShape);
+        rightWallBody.quaternion.setFromAxisAngle(new CANNON.Vec3(0, 1, 0), -Math.PI/2);
+        rightWallBody.position.set(30, 0, 0);
+        world.addBody(rightWallBody);
+        
+        // Updated collision detection
+        world.addEventListener('postStep', checkCollisions);
+    }
+
+    // New collision detection function
+    function checkCollisions() {
+        if (!isPlaying) return;
+
+        // Find contacts
+        for (let i = 0; i < world.contacts.length; i++) {
+            const contact = world.contacts[i];
+            if (!contact || !contact.bi || !contact.bj) continue; // Skip invalid contacts
+            
+            const bodyA = contact.bi;
+            const bodyB = contact.bj;
+
+            // Ignore ground and wall collisions
+           // if (bodyA.mass === 0 || bodyB.mass === 0) continue;
+
+            // Calculate relative velocity
+            const relativeVelocity = new CANNON.Vec3();
+            bodyA.velocity.vsub(bodyB.velocity, relativeVelocity);
+            const impactSpeed = relativeVelocity.length();
+
+            // Only play for significant impacts
+            if (impactSpeed > 2) {
+                // Choose a body to generate sound from
+                const soundBody = bodyA.musicNote !== undefined ? bodyA : bodyB;
+                
+                // Play sound with velocity-based volume
+                const velocity = Math.min(impactSpeed, 10);
+                playSound(soundBody, velocity);
+                
+                // Create visual impact effect only if we have valid contact point
+                if (contact.contactPointWorld) {
+                    createImpactEffect(contact.contactPointWorld, impactSpeed);
+                }
+            }
+        }
+    }
+
+    // Initialize Tone.js audio
+    function initAudio() {
+        // Create reverb
+        reverb = new Tone.Reverb({
+            decay: 1,  // Decay time in seconds
+            wet: 0.3   // Default wet/dry mix
+        }).toDestination();
+
+        // Update reverb control event listener
+        document.getElementById('reverb').addEventListener('input', function() {
+            const value = parseFloat(this.value);
+            reverb.decay = value * 3;  // Scale decay time from 0 to 3 seconds
+            reverb.wet.value = value;  // Control wet/dry mix
+            document.getElementById('reverb-value').textContent = value.toFixed(2);
+        });
+
+        // Create synths with reverb
+        synth = new Tone.Synth({
+            oscillator: {
+                type: 'sine8'
+            },
+            envelope: {
+                attack: 0.01,
+                decay: 0.1,
+                sustain: 0.2,
+                release: 0.5
+            }
+        }).connect(reverb);
+        
+        fmSynth = new Tone.FMSynth({
+            harmonicity: 3,
+            modulationIndex: 10,
+            oscillator: {
+                type: 'sine'
+            },
+            envelope: {
+                attack: 0.01,
+                decay: 0.2,
+                sustain: 0.1,
+                release: 0.5
+            },
+            modulation: {
+                type: 'triangle'
+            },
+            modulationEnvelope: {
+                attack: 0.01,
+                decay: 0.1,
+                sustain: 0.1,
+                release: 0.5
+            }
+        }).connect(reverb);
+        
+        // Set default volume
+        Tone.Destination.volume.value = -10;
+    }
+
+    // Initialize event listeners
+    function initEventListeners() {
+        // Toggle controls
+        document.getElementById('toggle-controls').addEventListener('click', function() {
+            const controls = document.getElementById('controls');
+            controls.classList.toggle('expanded');
+            
+            // Update button text based on state
+            if (controls.classList.contains('expanded')) {
+                this.innerHTML = '<span class="icon">◀</span>';
+                document.getElementById('start-stop').innerHTML = 'Start <span class="icon">▶</span>';
+                document.getElementById('add-objects').innerHTML = 'Add <span class="icon">+</span>';
+                document.getElementById('remove-objects').innerHTML = 'Clear <span class="icon">×</span>';
+                document.getElementById('change-scale').innerHTML = 'Scale <span class="icon">♪</span>';
+            } else {
+                this.innerHTML = '<span class="icon">≡</span>';
+                document.getElementById('start-stop').innerHTML = '<span class="icon">▶</span>';
+                document.getElementById('add-objects').innerHTML = '<span class="icon">+</span>';
+                document.getElementById('remove-objects').innerHTML = '<span class="icon">×</span>';
+                document.getElementById('change-scale').innerHTML = '<span class="icon">♪</span>';
+            }
+        });
+        
+        // Start/stop button
+        document.getElementById('start-stop').addEventListener('click', function() {
+            const controls = document.getElementById('controls');
+            const isExpanded = controls.classList.contains('expanded');
+            
+            if (!isPlaying) {
+                Tone.start().then(() => {
+                    showStatus("Audio started");
+                    isPlaying = true;
+                    this.innerHTML = isExpanded ? 'Stop <span class="icon">■</span>' : '<span class="icon">■</span>';
+                    this.title = "Stop";
+                }).catch(err => {
+                    showStatus("Error starting audio", false);
+                });
+            } else {
+                isPlaying = false;
+                this.innerHTML = isExpanded ? 'Start <span class="icon">▶</span>' : '<span class="icon">▶</span>';
+                this.title = "Start";
+                showStatus("Audio stopped");
+            }
+        });
+        
+        // Add objects button
+        document.getElementById('add-objects').addEventListener('click', function() {
+            const count = Math.floor(Math.random() * 5) + 3; // 3-7 objects
+            for (let i = 0; i < count; i++) {
+                addObject();
+            }
+            showStatus(`Added ${count} objects`);
+        });
+        
+        // Remove all objects button
+        document.getElementById('remove-objects').addEventListener('click', function() {
+            clearAllObjects();
+            showStatus("Cleared all objects");
+        });
+        
+        // Change scale button
+        document.getElementById('change-scale').addEventListener('click', function() {
+            changeScale();
+        });
+        
+        // Volume control
+        document.getElementById('volume').addEventListener('input', function() {
+            const value = parseFloat(this.value);
+            Tone.Destination.volume.value = Tone.gainToDb(value);
+            document.getElementById('volume-value').textContent = value.toFixed(2);
+        });
+        
+        // Gravity control
+        document.getElementById('gravity').addEventListener('input', function() {
+            const value = parseFloat(this.value);
+            world.gravity.set(0, -value, 0);
+            document.getElementById('gravity-value').textContent = value.toFixed(1);
+        });
+        
+        // Bounce control
+        document.getElementById('bounce').addEventListener('input', function() {
+            const value = parseFloat(this.value);
+            document.getElementById('bounce-value').textContent = value.toFixed(2);
+            
+            // Update existing bodies
+            for (let i = 0; i < physicsBodies.length; i++) {
+                if (physicsBodies[i].material) {
+                    physicsBodies[i].material.restitution = value;
+                }
+            }
+        });
+        
+        // Add keyboard shortcuts
+        window.addEventListener('keydown', function(event) {
+            if (event.key === 'a' || event.key === 'A') {
+                document.getElementById('add-objects').click();
+            }
+            else if (event.key === 'c' || event.key === 'C') {
+                document.getElementById('remove-objects').click();
+            }
+            else if (event.key === 's' || event.key === 'S') {
+                document.getElementById('change-scale').click();
+            }
+            else if (event.key === ' ') { // Space bar
+                document.getElementById('start-stop').click();
+            }
+            else if (event.key === 'h' || event.key === 'H') {
+                document.getElementById('toggle-controls').click();
+            }
+        });
+    }
+
+    // Initialize particle system for visual effects - many more particles
+    function initParticles() {
+        const particlesContainer = document.getElementById('particles');
+        
+        // Create particles - increased from 100 to 500
+        for (let i = 0; i < 500; i++) {
+            const particle = document.createElement('div');
+            particle.style.position = 'absolute';
+            particle.style.width = '1px';
+            particle.style.height = '1px';
+            particle.style.backgroundColor = '#4989ff';
+            particle.style.borderRadius = '50%';
+            particle.style.opacity = '0';
+            particle.style.pointerEvents = 'none';
+            
+            particlesContainer.appendChild(particle);
+            particles.push({
+                element: particle,
+                x: 0,
+                y: 0,
+                vx: 0,
+                vy: 0,
+                opacity: 0,
+                active: false
+            });
+        }
+    }
+
+    // Create visual impact effect - much more extreme
+    function createImpactEffect(position, intensity) {
+        // Check if position is valid
+        if (!position || typeof position.x === 'undefined') {
+            return; // Skip creating effect if position is invalid
+        }
+        
+        // Convert 3D position to screen coordinates
+        const vector = new THREE.Vector3(position.x, position.y, position.z);
+        vector.project(camera);
+        
+        const x = (vector.x * 0.5 + 0.5) * window.innerWidth;
+        const y = (-(vector.y * 0.5) + 0.5) * window.innerHeight;
+        
+        // Find inactive particles to use - MANY MORE PARTICLES
+        const particleCount = Math.min(Math.round(intensity * 10), 100); // More particles
+        let activated = 0;
+        
+        for (let i = 0; i < particles.length && activated < particleCount; i++) {
+            if (!particles[i].active) {
+                const particle = particles[i];
+                particle.active = true;
+                particle.x = x;
+                particle.y = y;
+                
+                // More extreme velocities
+                particle.vx = (Math.random() - 0.5) * intensity * 10;
+                particle.vy = (Math.random() - 0.5) * intensity * 10;
+                particle.opacity = 1;
+                
+                // Larger, more vibrant particles
+                const hue = Math.floor(180 + Math.random() * 180); // Full color spectrum
+                const size = 3 + Math.random() * intensity * 2; // Much larger particles
+                
+                particle.element.style.width = `${size}px`;
+                particle.element.style.height = `${size}px`;
+                particle.element.style.backgroundColor = `hsl(${hue}, 100%, 70%)`;
+                
+                // Much larger glow effect
+                particle.element.style.boxShadow = `0 0 ${size * 3}px hsla(${hue}, 100%, 70%, 0.9)`;
+                
+                activated++;
+            }
+        }
+    }
+
+    // Update particles with more extreme behavior
+    function updateParticles() {
+        for (let i = 0; i < particles.length; i++) {
+            const particle = particles[i];
+            
+            if (particle.active) {
+                // Update position with more dramatic movement
+                particle.x += particle.vx;
+                particle.y += particle.vy;
+                particle.opacity -= 0.0015; // Slower fade out
+                
+                // Apply gravity and physics effects
+                particle.vy += 0.15; // Stronger gravity effect
+                
+                // Add some randomness to movement for more chaotic effect
+                particle.vx += (Math.random() - 0.5) * 0.3;
+                
+                // Ensure we have a valid element before updating style
+                if (particle.element) {
+                    // Update DOM element
+                    particle.element.style.transform = `translate(${particle.x}px, ${particle.y}px) scale(${1 + Math.sin(Date.now() * 0.01 + i) * 0.2})`; // Pulsing effect
+                    particle.element.style.opacity = particle.opacity;
+                }
+                
+                // Deactivate if needed
+                if (particle.opacity <= 0) {
+                    particle.active = false;
+                    if (particle.element) {
+                        particle.element.style.opacity = '0';
+                    }
+                }
+            }
+        }
+    }
+
+    // Add a single object with enhanced visuals
+    function addObject() {
+        // Only use spheres now
+        const shape = 'sphere';
+        
+        // Random position
+        const position = {
+            x: Math.random() * 40 - 20,
+            y: Math.random() * 15 + 10,
+            z: Math.random() * 40 - 20
+        };
+        
+        // Random velocity
+        const velocity = {
+            x: Math.random() * 8 - 4, // Increased velocity range
+            y: Math.random() * 3,     // Increased upward velocity
+            z: Math.random() * 8 - 4  // Increased velocity range
+        };
+        
+        // Random size and mass - more variation
+        const size = Math.random() * 2.5 + 0.5; // Larger size range (0.5 to 3.0)
+        const mass = size * (Math.random() + 0.5); // Mass proportional to size
+        
+        // Get bounce value
+        const bounce = parseFloat(document.getElementById('bounce').value) + Math.random() * 0.4;
+        
+        // Create physics body
+        const bodyShape = new CANNON.Sphere(size);
+        
+        const body = new CANNON.Body({
+            mass: mass,
+            position: new CANNON.Vec3(position.x, position.y, position.z),
+            velocity: new CANNON.Vec3(velocity.x, velocity.y, velocity.z),
+            material: new CANNON.Material({ restitution: bounce })
+        });
+        
+        body.addShape(bodyShape);
+        
+        // Add musical properties
+        body.shapeType = shape;
+        body.size = size;
+        body.musicNote = Math.floor(Math.random() * 7); // 0-6 for scale degrees
+        body.musicOctave = size < 1 ? 5 : size < 2 ? 4 : 3; // Smaller = higher pitch
+        
+        world.addBody(body);
+        physicsBodies.push(body);
+        
+        // Create visual representation - always sphere now
+        const geometry = new THREE.SphereGeometry(size, 32, 32);
+        
+        // Enhanced visual materials
+        const colorIndex = Math.floor(Math.random() * colors.length);
+        const material = new THREE.MeshStandardMaterial({
+            color: colors[colorIndex],
+            roughness: 0.4,
+            metalness: 0.6,
+            transparent: true,
+            opacity: 0.9,
+            emissive: colors[colorIndex],
+            emissiveIntensity: 0.3 // Increased glow
+        });
+        
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        mesh.position.copy(body.position);
+        mesh.quaternion.copy(body.quaternion);
+        
+        // Always add glow effect - more pronounced
+        const glowSize = size * 1.4; // Larger glow
+        const glowGeometry = new THREE.SphereGeometry(glowSize, 32, 32);
+        const glowMaterial = new THREE.MeshBasicMaterial({
+            color: colors[colorIndex],
+            transparent: true,
+            opacity: 0.2, // More visible glow
+            side: THREE.BackSide
+        });
+        const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+        mesh.add(glow);
+        
+        scene.add(mesh);
+        visualObjects.push(mesh);
+        
+        return { body, mesh };
+    }
+
+    // Play a sound based on object properties
+    function playSound(body, velocity) {
+        try {
+            // Ensure body is valid
+            if (!body || !body.musicNote) return;
+            
+            // Get musical parameters
+            const scalePattern = scales[currentScale];
+            const scaleIndex = body.musicNote % scalePattern.length;
+            const octave = body.musicOctave;
+            
+            // Calculate MIDI note
+            const rootMidi = Tone.Frequency(currentRoot).toMidi();
+            const noteMidi = rootMidi + scalePattern[scaleIndex] + ((octave - parseInt(currentRoot.slice(-1))) * 12);
+            const note = Tone.Frequency(noteMidi, 'midi').toNote();
+            
+            // Calculate volume based on impact velocity (0.3-1.0)
+            const volume = 0.3 + Math.min(0.7, velocity / 10);
+            
+            // Choose synth based on size rather than shape
+            const timeStamp = Tone.now();
+            if (body.size < 1.5) {
+                synth.triggerAttackRelease(note, "8n", timeStamp, volume);
+            } else {
+                fmSynth.triggerAttackRelease(note, "8n", timeStamp, volume);
+            }
+            
+            // Create visual feedback for sound - much more intense
+            if (body.position) {
+                createImpactEffect(body.position, velocity * 0.5); // Increased particle effect
+                
+                // Add a second impact effect for more drama
+                setTimeout(() => {
+                    if (body && body.position) {
+                        createImpactEffect(body.position, velocity * 0.3);
+                    }
+                }, 50);
+            }
+        } catch (error) {
+            // Silent fallback, no logging
+            synth.triggerAttackRelease("C4", "8n", Tone.now(), 0.5);
+        }
+    }
+
+    // Change the musical scale with visual effect
+    function changeScale() {
+        const scaleNames = Object.keys(scales);
+        const newScale = scaleNames[Math.floor(Math.random() * scaleNames.length)];
+        
+        // Change root note occasionally
+        if (Math.random() < 0.3) {
+            const roots = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+            const newRoot = roots[Math.floor(Math.random() * roots.length)];
+            const octave = Math.floor(Math.random() * 2) + 3; // Octave 3 or 4
+            currentRoot = newRoot + octave;
+        }
+        
+        currentScale = newScale;
+        showStatus(`Changed to ${currentScale} scale`);
+        
+        // Visual effect for scale change - much more dramatic
+        for (let i = 0; i < visualObjects.length; i++) {
+            const obj = visualObjects[i];
+            // Create a pulse effect
+            const originalScale = obj.scale.x;
+            
+            // More dramatic scale animation
+            const scaleAnimation = { value: 1 };
+            const animate = () => {
+                scaleAnimation.value += 0.8; // Faster animation
+                if (scaleAnimation.value > 1.8) { // More extreme scaling
+                    scaleAnimation.value = 0.8; // Compress below normal size
+                    setTimeout(() => {
+                        obj.scale.set(1, 1, 1); // Return to normal
+                    }, 300);
+                    return;
+                }
+                
+                obj.scale.set(scaleAnimation.value, scaleAnimation.value, scaleAnimation.value);
+                requestAnimationFrame(animate);
+            };
+            
+            animate();
+            
+            // Change color with a flash effect
+            if (obj.material) {
+                const newColorIndex = Math.floor(Math.random() * colors.length);
+                
+                // Create a flash effect by temporarily increasing emissive intensity
+                const originalEmissiveIntensity = obj.material.emissiveIntensity;
+                obj.material.emissiveIntensity = 1.0; // Very bright glow
+                
+                // Change color
+                obj.material.color.set(colors[newColorIndex]);
+                obj.material.emissive.set(colors[newColorIndex]);
+                
+                // Return to normal glow after flash
+                setTimeout(() => {
+                    if (obj.material) {
+                        obj.material.emissiveIntensity = originalEmissiveIntensity;
+                    }
+                }, 300);
+            }
+            
+            // Add particle burst at object position
+            if (obj.position) {
+                createImpactEffect(obj.position, 5); // Large burst
+            }
+        }
+    }
+
+    // Clear all objects
+    function clearAllObjects() {
+        // Remove physics bodies
+        for (let i = physicsBodies.length - 1; i >= 0; i--) {
+            world.removeBody(physicsBodies[i]);
+        }
+        physicsBodies = [];
+        
+        // Remove visual objects
+        for (let i = visualObjects.length - 1; i >= 0; i--) {
+            scene.remove(visualObjects[i]);
+        }
+        visualObjects = [];
+    }
+
+    // Main animation loop
+    function animate() {
+        requestAnimationFrame(animate);
+        
+        // Step physics simulation
+        world.step(1/60);
+        
+        // Update visual objects to match physics
+        for (let i = 0; i < physicsBodies.length; i++) {
+            if (i < visualObjects.length) {
+                visualObjects[i].position.copy(physicsBodies[i].position);
+                visualObjects[i].quaternion.copy(physicsBodies[i].quaternion);
+            }
+        }
+        
+        // Update particles
+        updateParticles();
+        
+        // Animate camera slightly
+        camera.position.x = Math.sin(Date.now() * 0.001) * 2;
+        camera.position.z = 30 + Math.sin(Date.now() * 0.00008) * 3;
+        camera.lookAt(0, 0, 0);
+        
+        // Remove objects that have fallen too far
+        for (let i = physicsBodies.length - 1; i >= 0; i--) {
+            if (physicsBodies[i].position.y < -50) {
+                // Remove from physics
+                world.removeBody(physicsBodies[i]);
+                physicsBodies.splice(i, 1);
+                
+                // Remove from scene
+                if (i < visualObjects.length) {
+                    scene.remove(visualObjects[i]);
+                    visualObjects.splice(i, 1);
+                }
+            }
+        }
+        
+        // Render scene
+        renderer.render(scene, camera);
+    }
+    </script>
+</body>
+</html>
